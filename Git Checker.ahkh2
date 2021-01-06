@@ -1,0 +1,191 @@
+﻿;#Warn All, Off
+#persistent
+#SingleInstance Force
+
+TraySetIcon("resources\github.ico")
+
+#Include <Yaml>
+
+;DllCall("LoadLibrary", "Str", A_ScriptDir "\bin\AutoHotkey.dll")
+
+WinWait("ahk_exe cmd.exe")
+WinHide("ahk_exe cmd.exe")
+
+guititle := "Git Checker"
+
+threads := []
+projects := Map()
+
+MyGui := GuiCreate("+ReSize", guititle)
+MyGui.OnEvent("Close", "GuiClose")
+MyGui.OnEvent("Size", "GuiSize")
+
+MyGui.MarginX := 5, MyGui.MarginY := 5
+MyGui.SetFont("s11")
+
+cEd := MyGui.Add("Edit", "Section w240")
+
+cBtAdd := MyGui.Add("Button", "ys h25", "Add")
+cBtAdd.OnEvent("Click", Func("AddPressed").Bind(cEd))
+
+
+cTv := MyGui.Add("TreeView", "Section x5 xs w290 h280")
+cTv.Move("w" cBtAdd.Pos.x - cTv.Pos.x + cBtAdd.Pos.w)
+cTv.OnEvent("DoubleClick", (*) => DoubleClicked())
+
+cBtCheck := MyGui.Add("Button", "x5 xs w290 h25", "Recheck")
+cBtCheck.Move("w" cBtAdd.Pos.x - cBtCheck.Pos.x + cBtAdd.Pos.w)
+cBtCheck.OnEvent("Click", (*) => CheckAll())
+
+ImageListID := IL_Create(10)  ; Create an ImageList with initial capacity for 10 icons.
+IL_Add(ImageListID, "resources\non.ico")
+IL_Add(ImageListID, "resources\good.ico")
+IL_Add(ImageListID, "resources\bad.ico")
+
+cTv.SetImageList(ImageListID)
+
+Populate()
+
+MyGui.Show()
+
+CheckAll()
+return
+
+#If WinActive("ahk_id " MyGui.hwnd)
+	$Enter::
+	{
+		hwnd := MyGui.FocusedCtrl.Hwnd
+		if(hwnd = edit.Hwnd) {
+			AddPressed(cCBox)
+		} else {
+			Send("{Enter}")
+		}
+	}
+#If
+
+GitStatus(project) {
+	return RunWaitMany("git -C `"" project.path "`" status -s") = ""
+}
+
+CheckStatus(project) {
+	Global cTv
+	cTv.Modify(project.tvId, "+Icon1")
+	if(GitStatus(project)) {
+		cTv.Modify(project.tvId, "+Icon2")
+	} else {
+		cTv.Modify(project.tvId, "+Icon3")
+	}
+}
+
+CheckAll() {
+	Global projects
+	for i, project in projects {
+		CheckStatus(project)
+	}
+}
+
+AddProject(path, parrent) {
+	Global cTv, projects
+	project := ProjectClass.new(path)
+	projects[project.name] := project
+	project.tvId := cTv.Add(project.name, parrent, "Vis")
+}
+
+Populate() {
+	Global cTv
+	projects := Yaml(FileOpen("projects.json", "r`n").Read())[1]
+	
+	for category, paths in projects.OwnProps() {
+		parrent := cTv.Add(category)
+		for i, path in paths {
+			AddProject(path, parrent)
+		}
+	}
+	
+	;for i, path in StrSplit(FileOpen("projects.csv", "r`n").Read(), "`n") {
+	;	AddProject(path)
+	;}
+}
+
+AddPressed(edit, *) {
+	path := edit.Text
+	if(path) {
+		ClearControl(edit)
+		if(DirExist(path "\.git")) {
+			;AddProject(path)
+		}
+	}
+}
+
+OpenTerminal(project) {
+	Run("powershell -NoExit -Command `"& {cd \`"" project.path "\`"`n git status}`"")
+}
+
+DoubleClicked() {
+	Global cTv, projects
+	SelectedItemID := cTv.GetSelection()
+	name := cTv.GetText(SelectedItemID)
+	OpenTerminal(projects[name])
+	CheckStatus(projects[name])
+}
+
+RunWaitMany(commands) {
+	static shell := ComObjCreate("WScript.Shell"), exec := shell.Exec(A_ComSpec " /q /k echo off")
+	; Open cmd.exe with echoing of commands disabled
+
+	; Send the commands to execute, separated by newline
+	exec.StdIn.WriteLine("cls`n" commands "`necho ") ; 
+	
+	; Read and return the output of all commands
+	res := ""
+	while(line := exec.StdOut.Read(1)) {
+		if(line = "") {
+			res := StrReplace(StrReplace(res, ""), "`r")
+			res := RegExReplace(res, "m)^$`n", , OutputVarCount)
+			if(SubStr(res, -1) = "`n") {
+				res := SubStr(res, 1, -1)
+			}
+			Break
+		}
+		res .= line
+	}
+	return res
+	;return exec.StdOut.ReadAll()
+}
+
+ClearControl(control) {
+	control.Text := ""
+}
+
+GuiSize(GuiObj, MinMax, Width, Height) {
+	Global cBtAdd, cEd, cTv, cBtCheck
+	dist := cBtAdd.Pos.x - (cEd.Pos.x + cEd.Pos.w)
+	cBtAdd.Move("x" Width - cBtAdd.Pos.w - GuiObj.MarginX)
+	cEd.Move("w" cBtAdd.Pos.x - cEd.Pos.x - dist)
+	cBtCheck.Move("w" cBtAdd.Pos.x - cBtCheck.Pos.x + cBtAdd.Pos.w " y" Height - cBtCheck.Pos.h - GuiObj.MarginX)
+	cTv.Move("w" cBtAdd.Pos.x - cTv.Pos.x + cBtAdd.Pos.w " h" cBtCheck.Pos.y - cTv.Pos.y - dist)
+}
+
+GuiClose(*) {
+	ExitApp
+}
+
+Join(sep, params*) {
+    for index,param in params
+        str .= param . sep
+    return SubStr(str, 1, -StrLen(sep))
+}
+
+Class ProjectClass {
+	tvobj := ""
+
+	__New(path) {
+		this.path := path
+		this.name := this.GetName()
+	}
+	
+	GetName() {
+		SplitPath(this.path, name)
+		return name
+	}
+}

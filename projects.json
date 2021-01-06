@@ -1,0 +1,40 @@
+﻿{
+	"Raspberry pi" : [
+		"C:\\data\\Projects\\Raspberry_pi\\Rasp",
+		"C:\\data\\Projects\\Raspberry_pi\\Link-Transmitter-Updater",
+		"C:\\data\\Projects\\Raspberry_pi\\Link-Transmitter"
+	],
+	"Python" : [
+		"C:\\data\\Projects\\Python\\binarize-image",
+		"C:\\data\\Projects\\Python\\adb-installer"
+	],
+	"Nordic nRF" : [
+		"C:\\data\\Projects\\Nordic_nRF\\open_bootloader",
+		"C:\\data\\Projects\\Nordic_nRF\\oel-spi",
+		"C:\\data\\Projects\\Nordic_nRF\\build",
+		"C:\\data\\Projects\\Nordic_nRF\\PMIC",
+		"C:\\data\\Projects\\Nordic_nRF\\Nina-B3-ble-ant",
+		"C:\\data\\Projects\\Nordic_nRF\\Link-Radio",
+		"C:\\data\\Projects\\Nordic_nRF\\Link-Page",
+		"C:\\data\\Projects\\Nordic_nRF\\Link-Msg",
+		"C:\\data\\Projects\\Nordic_nRF\\Link-Button",
+		"C:\\data\\Projects\\Nordic_nRF\\Link"
+	],
+	"Leikr Watch" : [
+		"C:\\data\\Projects\\Leikr_Watch\\runmaster"
+	],
+	"AutoHotkey" : [
+		"C:\\data\\Projects\\AutoHotkey\\Git Checker",
+		"C:\\data\\Projects\\AutoHotkey\\Leikr Service Tool"
+	],
+	"Arduino" : [
+		"C:\\data\\Projects\\Arduino\\LoRa\\RadioLib"
+	],
+	"Android" : [
+		"C:\\data\\Projects\\Android\\NordicUartExample",
+		"C:\\data\\Projects\\Android\\LeikrTimesetter",
+		"C:\\data\\Projects\\Android\\LeikrBTTest",
+		"C:\\data\\Projects\\Android\\LeikrAlwaysOn"
+	]
+}
+

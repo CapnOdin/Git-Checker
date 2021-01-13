@@ -28,10 +28,12 @@ cEd := MyGui.Add("Edit", "Section w240")
 cBtAdd := MyGui.Add("Button", "ys h25", "Add")
 cBtAdd.OnEvent("Click", Func("AddPressed").Bind(cEd))
 
+dist := cBtAdd.Pos.x - (cEd.Pos.x + cEd.Pos.w)
 
 cTv := MyGui.Add("TreeView", "Section x5 xs w290 h280")
 cTv.Move("w" cBtAdd.Pos.x - cTv.Pos.x + cBtAdd.Pos.w)
 cTv.OnEvent("DoubleClick", (*) => DoubleClicked())
+cTv.OnEvent("ContextMenu", (*) => RightClicked())
 
 cBtCheck := MyGui.Add("Button", "x5 xs w290 h25", "Recheck")
 cBtCheck.Move("w" cBtAdd.Pos.x - cBtCheck.Pos.x + cBtAdd.Pos.w)
@@ -129,6 +131,15 @@ DoubleClicked() {
 	CheckStatus(projects[name])
 }
 
+RightClicked() {
+	Global cTv, projects
+	Click()
+	Sleep(50)
+	SelectedItemID := cTv.GetSelection()
+	name := cTv.GetText(SelectedItemID)
+	Run(projects[name].path)
+}
+
 RunWaitMany(commands) {
 	static shell := ComObjCreate("WScript.Shell"), exec := shell.Exec(A_ComSpec " /q /k echo off")
 	; Open cmd.exe with echoing of commands disabled
@@ -158,11 +169,10 @@ ClearControl(control) {
 }
 
 GuiSize(GuiObj, MinMax, Width, Height) {
-	Global cBtAdd, cEd, cTv, cBtCheck
-	dist := cBtAdd.Pos.x - (cEd.Pos.x + cEd.Pos.w)
+	Global cBtAdd, cEd, cTv, cBtCheck, dist
 	cBtAdd.Move("x" Width - cBtAdd.Pos.w - GuiObj.MarginX)
 	cEd.Move("w" cBtAdd.Pos.x - cEd.Pos.x - dist)
-	cBtCheck.Move("w" cBtAdd.Pos.x - cBtCheck.Pos.x + cBtAdd.Pos.w " y" Height - cBtCheck.Pos.h - GuiObj.MarginX)
+	cBtCheck.Move("w" cBtAdd.Pos.x - cBtCheck.Pos.x + cBtAdd.Pos.w " y" Height - cBtCheck.Pos.h - GuiObj.MarginY)
 	cTv.Move("w" cBtAdd.Pos.x - cTv.Pos.x + cBtAdd.Pos.w " h" cBtCheck.Pos.y - cTv.Pos.y - dist)
 }
 

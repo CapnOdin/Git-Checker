@@ -42,6 +42,7 @@ cBtCheck.OnEvent("Click", (*) => CheckAll())
 ImageListID := IL_Create(10)  ; Create an ImageList with initial capacity for 10 icons.
 IL_Add(ImageListID, "resources\non.ico")
 IL_Add(ImageListID, "resources\good.ico")
+IL_Add(ImageListID, "resources\lessbad.ico")
 IL_Add(ImageListID, "resources\bad.ico")
 
 cTv.SetImageList(ImageListID)
@@ -66,20 +67,24 @@ return
 #If
 
 GitStatus(project) {
-	return RunWaitMany("git -C `"" project.path "`" status -s") = ""
+	return RunWaitMany("git -C `"" project.path "`" status -s") != ""
 }
 
 GitCheckIfPushed(project) {
-	return RunWaitMany("git -C `"" project.path "`" log --branches --not --remotes") = ""
+	return RunWaitMany("git -C `"" project.path "`" log --branches --not --remotes") != ""
 }
 
 CheckStatus(project) {
 	Global cTv
 	cTv.Modify(project.tvId, "+Icon1")
-	if(GitStatus(project) && GitCheckIfPushed(project)) {
+	changes := GitStatus(project)
+	commits := GitCheckIfPushed(project)
+	if(!changes && !commits) {
 		cTv.Modify(project.tvId, "+Icon2")
-	} else {
+	} else if(!changes && commits) {
 		cTv.Modify(project.tvId, "+Icon3")
+	} else {
+		cTv.Modify(project.tvId, "+Icon4")
 	}
 }
 
@@ -149,11 +154,12 @@ RunWaitMany(commands) {
 	; Open cmd.exe with echoing of commands disabled
 
 	; Send the commands to execute, separated by newline
-	exec.StdIn.WriteLine("cls`n" commands "`necho ") ; 
+	exec.StdIn.WriteLine("cls`n" commands "`necho ")
 	
 	; Read and return the output of all commands
 	res := ""
-	while(line := exec.StdOut.Read(1)) {
+	loop {
+		line := exec.StdOut.Read(1)
 		if(line = "") {
 			res := StrReplace(StrReplace(res, ""), "`r")
 			res := RegExReplace(res, "m)^$`n", , OutputVarCount)

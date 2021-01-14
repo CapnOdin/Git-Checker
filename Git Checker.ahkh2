@@ -158,8 +158,8 @@ RunWaitMany(commands) {
 	
 	; Read and return the output of all commands
 	output := ""
-	while((line := exec.StdOut.Read(1)) != "") {
-		output .= line
+	while((char := exec.StdOut.Read(1)) != "") {
+		output .= char
 	}
 	output := StrReplace(StrReplace(output, ""), "`r")
 	output := RegExReplace(output, "m)^$`n")

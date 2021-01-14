@@ -157,20 +157,16 @@ RunWaitMany(commands) {
 	exec.StdIn.WriteLine("cls`n" commands "`necho ")
 	
 	; Read and return the output of all commands
-	res := ""
-	loop {
-		line := exec.StdOut.Read(1)
-		if(line = "") {
-			res := StrReplace(StrReplace(res, ""), "`r")
-			res := RegExReplace(res, "m)^$`n", , OutputVarCount)
-			if(SubStr(res, -1) = "`n") {
-				res := SubStr(res, 1, -1)
-			}
-			Break
-		}
-		res .= line
+	output := ""
+	while((line := exec.StdOut.Read(1)) != "") {
+		output .= line
 	}
-	return res
+	output := StrReplace(StrReplace(output, ""), "`r")
+	output := RegExReplace(output, "m)^$`n")
+	if(SubStr(output, -1) = "`n") {
+		output := SubStr(output, 1, -1)
+	}
+	return output
 	;return exec.StdOut.ReadAll()
 }
 

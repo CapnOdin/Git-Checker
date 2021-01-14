@@ -69,10 +69,14 @@ GitStatus(project) {
 	return RunWaitMany("git -C `"" project.path "`" status -s") = ""
 }
 
+GitCheckIfPushed(project) {
+	return RunWaitMany("git -C `"" project.path "`" log --branches --not --remotes") = ""
+}
+
 CheckStatus(project) {
 	Global cTv
 	cTv.Modify(project.tvId, "+Icon1")
-	if(GitStatus(project)) {
+	if(GitStatus(project) && GitCheckIfPushed(project)) {
 		cTv.Modify(project.tvId, "+Icon2")
 	} else {
 		cTv.Modify(project.tvId, "+Icon3")

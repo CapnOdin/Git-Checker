@@ -52,6 +52,8 @@ Populate()
 MyGui.Show()
 
 CheckAll()
+
+SetTimer(Func("CheckAll"), 60 * 1000)
 return
 
 #If WinActive("ahk_id " MyGui.hwnd)

@@ -6,11 +6,6 @@ TraySetIcon("resources\github.ico")
 
 #Include <Yaml>
 
-;DllCall("LoadLibrary", "Str", A_ScriptDir "\bin\AutoHotkey.dll")
-
-WinWait("ahk_exe cmd.exe")
-WinHide("ahk_exe cmd.exe")
-
 guititle := "Git Checker"
 
 threads := []
@@ -152,7 +147,7 @@ RightClicked() {
 }
 
 RunWaitMany(commands) {
-	static shell := ComObjCreate("WScript.Shell"), exec := shell.Exec(A_ComSpec " /q /k echo off")
+	static shell := ComObjCreate("WScript.Shell"), exec := shell.Exec(A_ComSpec " /q /k echo off"), _ := WinWaitHide(exec.ProcessID)
 	; Open cmd.exe with echoing of commands disabled
 
 	; Send the commands to execute, separated by newline
@@ -170,6 +165,11 @@ RunWaitMany(commands) {
 	}
 	return output
 	;return exec.StdOut.ReadAll()
+}
+
+WinWaitHide(pID) {
+	WinWait("ahk_pid " pID)
+	WinHide("ahk_pid " pID)
 }
 
 ClearControl(control) {

@@ -39,6 +39,7 @@ IL_Add(ImageListID, "resources\non.ico")
 IL_Add(ImageListID, "resources\good.ico")
 IL_Add(ImageListID, "resources\lessbad.ico")
 IL_Add(ImageListID, "resources\bad.ico")
+IL_Add(ImageListID, "resources\line.ico")
 
 cTv.SetImageList(ImageListID)
 
@@ -92,22 +93,58 @@ CheckAll() {
 	}
 }
 
-AddProject(path, parrent) {
+AddProject(path, parent) {
 	Global cTv, projects
 	project := ProjectClass.new(path)
-	projects[project.name] := project
-	project.tvId := cTv.Add(project.name, parrent, "Vis")
+	name := project.name
+	if(projects.Has(project.name)) {
+		while(projects.Has(name := project.name " (" A_Index ")")) {
+			
+		}
+	}
+	projects[name] := project
+	project.tvId := cTv.Add(project.name, parent, "Vis")
+}
+
+AddCategory(category, projects, patentID := 0) {
+	Global cTv
+	parent := cTv.Add(category, patentID, "Icon5")
+	
+	if(Type(projects) = "Array") {
+		for i, path in projects {
+			if(IsObject(path)) {
+				AddCategory(i, path, parent)
+			} else {
+				AddProject(path, parent)
+			}
+		}
+	} else if(Type(projects) = "Object") {
+		for name, child in projects.OwnProps() {
+			if(IsObject(child)) {
+				AddCategory(name, child, parent)
+			} else {
+				AddProject(path, parent)
+			}
+		}
+	}
 }
 
 Populate() {
-	Global cTv
+	
 	projects := Yaml(FileOpen("projects.json", "r`n").Read())[1]
 	
 	for category, paths in projects.OwnProps() {
+		AddCategory(category, paths)
+		
+		/*
 		parrent := cTv.Add(category)
 		for i, path in paths {
+			if(IsObject(path)) {
+				
+			}
 			AddProject(path, parrent)
 		}
+		*/
 	}
 	
 	;for i, path in StrSplit(FileOpen("projects.csv", "r`n").Read(), "`n") {
@@ -131,19 +168,23 @@ OpenTerminal(project) {
 
 DoubleClicked() {
 	Global cTv, projects
-	SelectedItemID := cTv.GetSelection()
-	name := cTv.GetText(SelectedItemID)
-	OpenTerminal(projects[name])
-	CheckStatus(projects[name])
+	try {
+		SelectedItemID := cTv.GetSelection()
+		name := cTv.GetText(SelectedItemID)
+		OpenTerminal(projects[name])
+		CheckStatus(projects[name])
+	}
 }
 
 RightClicked() {
 	Global cTv, projects
-	Click()
-	Sleep(50)
-	SelectedItemID := cTv.GetSelection()
-	name := cTv.GetText(SelectedItemID)
-	Run(projects[name].path)
+	try {
+		Click()
+		Sleep(50)
+		SelectedItemID := cTv.GetSelection()
+		name := cTv.GetText(SelectedItemID)
+		Run(projects[name].path)
+	}
 }
 
 RunWaitMany(commands) {

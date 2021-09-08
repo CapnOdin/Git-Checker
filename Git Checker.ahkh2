@@ -49,7 +49,7 @@ MyGui.Show()
 
 CheckAll()
 
-SetTimer(Func("CheckAll"), 60 * 1000)
+;SetTimer(Func("CheckAll"), 60 * 1000)
 return
 
 #If WinActive("ahk_id " MyGui.hwnd)
@@ -64,7 +64,7 @@ return
 	}
 #If
 
-GitStatus(project) {
+GitStatus(project, reset := False) {
 	return RunWaitMany("git -C `"" project.path "`" status -s") != ""
 }
 
@@ -72,10 +72,14 @@ GitCheckIfPushed(project) {
 	return RunWaitMany("git -C `"" project.path "`" log --branches --not --remotes") != ""
 }
 
-CheckStatus(project) {
+CheckStatus(project, counter := -1, reset := False) {
 	Global cTv
+	CoordMode("ToolTip", "Screen")
+	ToolTip("Checking Status: " counter, 0, 0)
 	cTv.Modify(project.tvId, "+Icon1")
-	changes := GitStatus(project)
+	ToolTip("Checking changes: " counter, 0, 0)
+	changes := GitStatus(project, reset)
+	ToolTip("Checking commits: " counter, 0, 0)
 	commits := GitCheckIfPushed(project)
 	if(!changes && !commits) {
 		cTv.Modify(project.tvId, "+Icon2")
@@ -84,13 +88,18 @@ CheckStatus(project) {
 	} else {
 		cTv.Modify(project.tvId, "+Icon4")
 	}
+	ToolTip()
 }
 
 CheckAll() {
 	Global projects
+	static counter := 1
+	reset := Mod(counter, 29) == 0
 	for i, project in projects {
-		CheckStatus(project)
+		CheckStatus(project, counter, reset)
+		reset := False
 	}
+	counter++
 }
 
 AddProject(path, parent) {
@@ -187,9 +196,18 @@ RightClicked() {
 	}
 }
 
-RunWaitMany(commands) {
+RunWaitMany(commands, timeout := 10000, reset := False) {
 	static shell := ComObjCreate("WScript.Shell"), exec := shell.Exec(A_ComSpec " /q /k echo off"), _ := WinWaitHide(exec.ProcessID)
 	; Open cmd.exe with echoing of commands disabled
+
+	if(reset) {
+		WinClose("ahk_pid " exec.ProcessID)
+		shell := ComObjCreate("WScript.Shell")
+		exec := shell.Exec(A_ComSpec " /q /k echo off")
+		WinWaitHide(exec.ProcessID)
+	}
+
+	start := A_TickCount
 
 	; Send the commands to execute, separated by newline
 	exec.StdIn.WriteLine("cls`n" commands "`necho ")
@@ -197,6 +215,9 @@ RunWaitMany(commands) {
 	; Read and return the output of all commands
 	output := ""
 	while((char := exec.StdOut.Read(1)) != "") {
+		if(A_TickCount - start > timeout) {
+			Throw {"what": A_ThisFunc " timedout after " (A_TickCount - start) " while running (" commands ")", "file": A_LineFile, "line": A_LineNumber}
+		}
 		output .= char
 	}
 	output := StrReplace(StrReplace(output, ""), "`r")

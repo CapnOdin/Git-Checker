@@ -37,6 +37,7 @@ cBtCheck.OnEvent("Click", (*) => CheckAll())
 ImageListID := IL_Create(10)  ; Create an ImageList with initial capacity for 10 icons.
 IL_Add(ImageListID, "resources\non.ico")
 IL_Add(ImageListID, "resources\good.ico")
+IL_Add(ImageListID, "resources\leastbad.ico")
 IL_Add(ImageListID, "resources\lessbad.ico")
 IL_Add(ImageListID, "resources\bad.ico")
 IL_Add(ImageListID, "resources\line.ico")
@@ -72,6 +73,10 @@ GitCheckIfPushed(project) {
 	return RunWaitMany("git -C `"" project.path "`" log --branches --not --remotes") != ""
 }
 
+GitCheckForUntracked(project) {
+	return RunWaitMany("git -C `"" project.path "`" ls-files --others --exclude-standard") != ""
+}
+
 CheckStatus(project, counter := -1, reset := False) {
 	Global cTv
 	CoordMode("ToolTip", "Screen")
@@ -81,12 +86,16 @@ CheckStatus(project, counter := -1, reset := False) {
 	changes := GitStatus(project, reset)
 	ToolTip("Checking commits: " counter, 0, 0)
 	commits := GitCheckIfPushed(project)
-	if(!changes && !commits) {
+	ToolTip("Checking untracked: " counter, 0, 0)
+	untracked := GitCheckForUntracked(project)
+	if(!changes && !commits && !untracked) {
 		cTv.Modify(project.tvId, "+Icon2")
-	} else if(!changes && commits) {
+	} else if(!changes && !commits && untracked) {
 		cTv.Modify(project.tvId, "+Icon3")
-	} else {
+	} else if(!changes && commits) {
 		cTv.Modify(project.tvId, "+Icon4")
+	} else {
+		cTv.Modify(project.tvId, "+Icon5")
 	}
 	ToolTip()
 }
@@ -117,7 +126,7 @@ AddProject(path, parent) {
 
 AddCategory(category, projects, patentID := 0) {
 	Global cTv
-	parent := cTv.Add(category, patentID, "Icon5")
+	parent := cTv.Add(category, patentID, "Icon6")
 	
 	if(Type(projects) = "Array") {
 		for i, path in projects {

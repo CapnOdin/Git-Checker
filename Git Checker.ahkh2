@@ -73,33 +73,39 @@ GitCheckIfPushed(project) {
 	return RunWaitMany("git -C `"" project.path "`" log --branches --not --remotes") != ""
 }
 
+GitCheckForModified(project) {
+	return RunWaitMany("git -C `"" project.path "`" diff --name-only") != ""
+}
+
 GitCheckForUntracked(project) {
 	return RunWaitMany("git -C `"" project.path "`" ls-files --others --exclude-standard") != ""
 }
 
 CheckStatus(project, counter := -1, reset := False) {
 	Global cTv
-	CoordMode("ToolTip", "Screen")
-	ToolTip("Checking Status: " counter, 0, 0)
-	cTv.Modify(project.tvId, "+Icon1")
-	ToolTip("Checking changes: " counter, 0, 0)
-	changes := GitStatus(project, reset)
-	ToolTip("Checking commits: " counter, 0, 0)
-	commits := GitCheckIfPushed(project)
-	ToolTip("Checking untracked: " counter, 0, 0)
-	untracked := GitCheckForUntracked(project)
-	if(!changes && !commits && !untracked) {
-		cTv.Modify(project.tvId, "+Icon2")
-	} else if(!changes && !commits && untracked) {
-		cTv.Modify(project.tvId, "+Icon3")
-		MsgBox("leastbad")
-	} else if(!changes && commits) {
-		cTv.Modify(project.tvId, "+Icon4")
-		MsgBox("lessbad")
-	} else {
-		cTv.Modify(project.tvId, "+Icon5")
+	if(DirExist(project.path "\.git")) {
+		CoordMode("ToolTip", "Screen")
+		ToolTip("Checking Status: " counter " - " project.name, 0, 0)
+		cTv.Modify(project.tvId, "+Icon1")
+		ToolTip("Checking changes: " counter " - " project.name, 0, 0)
+		changes := GitStatus(project, reset)
+		ToolTip("Checking commits: " counter " - " project.name, 0, 0)
+		commits := GitCheckIfPushed(project)
+		ToolTip("Checking modified: " counter " - " project.name, 0, 0)
+		modified := GitCheckForModified(project)
+		ToolTip("Checking untracked: " counter " - " project.name, 0, 0)
+		untracked := GitCheckForUntracked(project)
+		if(!changes && !commits && !modified && !untracked) {
+			cTv.Modify(project.tvId, "+Icon2")
+		} else if(!modified && !commits && untracked) {
+			cTv.Modify(project.tvId, "+Icon3")
+		} else if(!modified && commits) {
+			cTv.Modify(project.tvId, "+Icon4")
+		} else {
+			cTv.Modify(project.tvId, "+Icon5")
+		}
+		ToolTip()
 	}
-	ToolTip()
 }
 
 CheckAll() {

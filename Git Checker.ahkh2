@@ -92,8 +92,10 @@ CheckStatus(project, counter := -1, reset := False) {
 		cTv.Modify(project.tvId, "+Icon2")
 	} else if(!changes && !commits && untracked) {
 		cTv.Modify(project.tvId, "+Icon3")
+		MsgBox("leastbad")
 	} else if(!changes && commits) {
 		cTv.Modify(project.tvId, "+Icon4")
+		MsgBox("lessbad")
 	} else {
 		cTv.Modify(project.tvId, "+Icon5")
 	}

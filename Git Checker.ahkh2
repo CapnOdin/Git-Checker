@@ -18,20 +18,15 @@ MyGui.OnEvent("Size", "GuiSize")
 MyGui.MarginX := 5, MyGui.MarginY := 5
 MyGui.SetFont("s11")
 
-cEd := MyGui.Add("Edit", "Section w240")
+dist := 5
 
-cBtAdd := MyGui.Add("Button", "ys h25", "Add")
-cBtAdd.OnEvent("Click", Func("AddPressed").Bind(cEd))
-
-dist := cBtAdd.Pos.x - (cEd.Pos.x + cEd.Pos.w)
-
-cTv := MyGui.Add("TreeView", "Section x5 xs w290 h280")
-cTv.Move("w" cBtAdd.Pos.x - cTv.Pos.x + cBtAdd.Pos.w)
+cTv := MyGui.Add("TreeView", "Section xs w290 h280")
+cTv.Move("x" MyGui.MarginX " y" MyGui.MarginY " w290")
 cTv.OnEvent("DoubleClick", (*) => DoubleClicked())
 cTv.OnEvent("ContextMenu", (*) => RightClicked())
 
-cBtCheck := MyGui.Add("Button", "x5 xs w290 h25", "Recheck")
-cBtCheck.Move("w" cBtAdd.Pos.x - cBtCheck.Pos.x + cBtAdd.Pos.w)
+cBtCheck := MyGui.Add("Button", "xs w290 h25", "Recheck")
+cBtCheck.Move("x" MyGui.MarginX " w" cTv.Pos.w)
 cBtCheck.OnEvent("Click", (*) => CheckAll())
 
 ImageListID := IL_Create(10)  ; Create an ImageList with initial capacity for 10 icons.
@@ -44,26 +39,29 @@ IL_Add(ImageListID, "resources\line.ico")
 
 cTv.SetImageList(ImageListID)
 
-Populate()
+numOfRows := Populate()
 
-MyGui.Show()
+MyGui.Show("Hide")
+
+TVM_GETITEMHEIGHT := 0x111C
+
+rowHeight := SendMessage(TVM_GETITEMHEIGHT, 0, 0, cTv.Hwnd)
+
+MonitorGetWorkArea(MonitorGetPrimary(), Left, Top, Right, Bottom)
+
+titlebarHeight := SysGet(SM_CYSIZE := 31)
+
+screenHeight := Bottom - Top
+treeViewNeedeHeight := Integer(numOfRows) * Integer(rowHeight)
+neededHeight := treeViewNeedeHeight + titlebarHeight + cBtCheck.Pos.h + MyGui.MarginY * 2
+h := Min(neededHeight, screenHeight)
+
+MyGui.Show("x" (Right - Left) - MyGui.Pos.w " y0 h" h)
 
 CheckAll()
 
-;SetTimer(Func("CheckAll"), 60 * 1000)
+SetTimer(Func("CheckAll"), 60 * 1000)
 return
-
-#If WinActive("ahk_id " MyGui.hwnd)
-	$Enter::
-	{
-		hwnd := MyGui.FocusedCtrl.Hwnd
-		if(hwnd = edit.Hwnd) {
-			AddPressed(cCBox)
-		} else {
-			Send("{Enter}")
-		}
-	}
-#If
 
 GitStatus(project, reset := False) {
 	return RunWaitMany("git -C `"" project.path "`" status -s") != ""
@@ -85,15 +83,15 @@ CheckStatus(project, counter := -1, reset := False) {
 	Global cTv
 	if(DirExist(project.path "\.git")) {
 		CoordMode("ToolTip", "Screen")
-		ToolTip("Checking Status: " counter " - " project.name, 0, 0)
+		;ToolTip("Checking Status: " counter " - " project.name, 0, 0)
 		cTv.Modify(project.tvId, "+Icon1")
-		ToolTip("Checking changes: " counter " - " project.name, 0, 0)
+		;ToolTip("Checking changes: " counter " - " project.name, 0, 0)
 		changes := GitStatus(project, reset)
-		ToolTip("Checking commits: " counter " - " project.name, 0, 0)
+		;ToolTip("Checking commits: " counter " - " project.name, 0, 0)
 		commits := GitCheckIfPushed(project)
-		ToolTip("Checking modified: " counter " - " project.name, 0, 0)
+		;ToolTip("Checking modified: " counter " - " project.name, 0, 0)
 		modified := GitCheckForModified(project)
-		ToolTip("Checking untracked: " counter " - " project.name, 0, 0)
+		;ToolTip("Checking untracked: " counter " - " project.name, 0, 0)
 		untracked := GitCheckForUntracked(project)
 		if(!changes && !commits && !modified && !untracked) {
 			cTv.Modify(project.tvId, "+Icon2")
@@ -136,31 +134,38 @@ AddCategory(category, projects, patentID := 0) {
 	Global cTv
 	parent := cTv.Add(category, patentID, "Icon6")
 	
+	rows := 1
+	
 	if(Type(projects) = "Array") {
 		for i, path in projects {
 			if(IsObject(path)) {
-				AddCategory(i, path, parent)
+				rows += AddCategory(i, path, parent)
 			} else {
 				AddProject(path, parent)
+				rows++
 			}
 		}
 	} else if(Type(projects) = "Object") {
 		for name, child in projects.OwnProps() {
 			if(IsObject(child)) {
-				AddCategory(name, child, parent)
+				rows += AddCategory(name, child, parent)
 			} else {
 				AddProject(path, parent)
+				rows++
 			}
 		}
 	}
+	return rows
 }
 
 Populate() {
 	
 	projects := Yaml(FileOpen("projects.json", "r`n").Read())[1]
 	
+	rows := 0
+	
 	for category, paths in projects.OwnProps() {
-		AddCategory(category, paths)
+		rows += AddCategory(category, paths)
 		
 		/*
 		parrent := cTv.Add(category)
@@ -175,17 +180,8 @@ Populate() {
 	
 	;for i, path in StrSplit(FileOpen("projects.csv", "r`n").Read(), "`n") {
 	;	AddProject(path)
-	;}
-}
-
-AddPressed(edit, *) {
-	path := edit.Text
-	if(path) {
-		ClearControl(edit)
-		if(DirExist(path "\.git")) {
-			;AddProject(path)
-		}
-	}
+	;}'
+	return rows
 }
 
 OpenTerminal(project) {
@@ -231,12 +227,24 @@ RunWaitMany(commands, timeout := 10000, reset := False) {
 	
 	; Read and return the output of all commands
 	output := ""
-	while((char := exec.StdOut.Read(1)) != "") {
-		if(A_TickCount - start > timeout) {
-			Throw {"what": A_ThisFunc " timedout after " (A_TickCount - start) " while running (" commands ")", "file": A_LineFile, "line": A_LineNumber}
+	
+	loop {
+		if(exec.StdOut.AtEndOfStream) {
+			if(A_TickCount - start > timeout) {
+				Throw {"what": A_ThisFunc " timedout after " (A_TickCount - start) " while running (" commands ")", "file": A_LineFile, "line": A_LineNumber}
+			}
+			Sleep(25)
+		} else {
+			while(!exec.StdOut.AtEndOfStream) {
+				char := exec.StdOut.Read(1)
+				if(char = "") {
+					break 2
+				}
+				output .= char
+			}
 		}
-		output .= char
 	}
+	
 	output := StrReplace(StrReplace(output, ""), "`r")
 	output := RegExReplace(output, "m)^$`n")
 	if(SubStr(output, -1) = "`n") {
@@ -256,11 +264,9 @@ ClearControl(control) {
 }
 
 GuiSize(GuiObj, MinMax, Width, Height) {
-	Global cBtAdd, cEd, cTv, cBtCheck, dist
-	cBtAdd.Move("x" Width - cBtAdd.Pos.w - GuiObj.MarginX)
-	cEd.Move("w" cBtAdd.Pos.x - cEd.Pos.x - dist)
-	cBtCheck.Move("w" cBtAdd.Pos.x - cBtCheck.Pos.x + cBtAdd.Pos.w " y" Height - cBtCheck.Pos.h - GuiObj.MarginY)
-	cTv.Move("w" cBtAdd.Pos.x - cTv.Pos.x + cBtAdd.Pos.w " h" cBtCheck.Pos.y - cTv.Pos.y - dist)
+	Global cTv, cBtCheck, dist
+	cBtCheck.Move("w" Width - 2 * GuiObj.MarginX " y" Height - cBtCheck.Pos.h - GuiObj.MarginY)
+	cTv.Move("w" Width - 2 * GuiObj.MarginX " h" cBtCheck.Pos.y - cTv.Pos.y - dist)
 }
 
 GuiClose(*) {
